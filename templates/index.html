@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPL Performance Analytics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #111827; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="text-gray-200">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-bold text-white">IPL Performance Analytics</h1>
+            <p class="text-gray-400 mt-2">Explore detailed stats for teams and players.</p>
+        </header>
+
+        <!-- REDESIGNED UI with separate cards -->
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+            <!-- Team vs Team Section -->
+            <section class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h2 class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">Team vs. Team</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="team1-select" class="block text-sm font-medium text-gray-300">Select Team 1</label>
+                        <select id="team1-select" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></select>
+                    </div>
+                    <div>
+                        <label for="team2-select" class="block text-sm font-medium text-gray-300">Select Team 2</label>
+                        <select id="team2-select" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></select>
+                    </div>
+                    <button id="get-teamvteam-stats" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition duration-300">Get Head-to-Head</button>
+                </div>
+            </section>
+
+            <!-- Batsman Stats Section -->
+            <section class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h2 class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">Batsman Record</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="batsman-select" class="block text-sm font-medium text-gray-300">Select Batsman</label>
+                        <select id="batsman-select" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"></select>
+                    </div>
+                    <button id="get-batsman-stats" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition duration-300">Get Batting Record</button>
+                </div>
+            </section>
+
+            <!-- Bowler Stats Section -->
+            <section class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h2 class="text-2xl font-semibold mb-4 text-white border-b border-gray-700 pb-2">Bowler Record</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="bowler-select" class="block text-sm font-medium text-gray-300">Select Bowler</label>
+                        <select id="bowler-select" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500"></select>
+                    </div>
+                    <button id="get-bowler-stats" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition duration-300">Get Bowling Record</button>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Results Section -->
+        <section id="results-section" class="mt-10">
+            <div id="loader" class="hidden mx-auto loader"></div>
+            <div id="results-container" class="bg-gray-800 p-6 rounded-lg shadow-lg hidden"></div>
+        </section>
+
+    </div>
+
+    <script>
+        const team1Select = document.getElementById('team1-select');
+        const team2Select = document.getElementById('team2-select');
+        const batsmanSelect = document.getElementById('batsman-select');
+        const bowlerSelect = document.getElementById('bowler-select');
+        const getTeamVTeamBtn = document.getElementById('get-teamvteam-stats');
+        const getBatsmanBtn = document.getElementById('get-batsman-stats');
+        const getBowlerBtn = document.getElementById('get-bowler-stats');
+        const resultsContainer = document.getElementById('results-container');
+        const loader = document.getElementById('loader');
+
+        const populateSelect = (selectElement, options, defaultText = '-- Select --') => {
+            selectElement.innerHTML = `<option value="">${defaultText}</option>`;
+            options.forEach(option => {
+                const opt = document.createElement('option');
+                opt.value = option;
+                opt.textContent = option;
+                selectElement.appendChild(opt);
+            });
+        };
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch('/api/list-all');
+                const data = await response.json();
+
+                populateSelect(team1Select, data.teams, '-- Select Team 1 --');
+                populateSelect(team2Select, data.teams, '-- Select Team 2 --');
+                populateSelect(batsmanSelect, data.batters, '-- Select Batsman --');
+                populateSelect(bowlerSelect, data.bowlers, '-- Select Bowler --');
+
+            } catch (error) {
+                resultsContainer.innerHTML = `<p class="text-red-400">Error: Could not load initial data. Please refresh.</p>`;
+                resultsContainer.classList.remove('hidden');
+            }
+        });
+
+        const fetchData = async (url, renderer, ...args) => {
+            resultsContainer.classList.add('hidden');
+            loader.classList.remove('hidden');
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                renderer(data, ...args);
+            } catch (error) {
+                console.error("Error during fetch or render:", error);
+                resultsContainer.innerHTML = `<p class="text-red-400">An error occurred while fetching or rendering data.</p>`;
+            } finally {
+                loader.classList.add('hidden');
+                resultsContainer.classList.remove('hidden');
+            }
+        };
+
+        const renderTeamVTeam = (data, team1Name, team2Name) => {
+            if (data.message) {
+                resultsContainer.innerHTML = `<p class="text-yellow-400">${data.message}</p>`;
+                return;
+            }
+            const team1WinsKey = `${team1Name}_wins`;
+            const team2WinsKey = `${team2Name}_wins`;
+
+            resultsContainer.innerHTML = `
+                <h3 class="text-2xl font-bold mb-4 text-white">${team1Name} vs ${team2Name}</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div class="bg-gray-700 p-4 rounded-lg"><p class="text-sm text-gray-400">Total Matches</p><p class="text-2xl font-bold">${data.total_matches}</p></div>
+                    <div class="bg-gray-700 p-4 rounded-lg"><p class="text-sm text-gray-400">${team1Name} Wins</p><p class="text-2xl font-bold text-indigo-400">${data[team1WinsKey] || 0}</p></div>
+                    <div class="bg-gray-700 p-4 rounded-lg"><p class="text-sm text-gray-400">${team2Name} Wins</p><p class="text-2xl font-bold text-pink-400">${data[team2WinsKey] || 0}</p></div>
+                    <div class="bg-gray-700 p-4 rounded-lg"><p class="text-sm text-gray-400">No Result</p><p class="text-2xl font-bold">${data.no_result}</p></div>
+                </div>`;
+        };
+
+        const renderPlayerStats = (data, recordType) => {
+             const playerName = Object.keys(data)[0];
+             if (data.message || !data[playerName]) {
+                resultsContainer.innerHTML = `<p class="text-yellow-400">${data.message || 'Player not found or has no record.'}</p>`;
+                return;
+             }
+             const stats = data[playerName].overall;
+             const againstStats = data[playerName].against;
+             let statsHtml = `<h3 class="text-2xl font-bold mb-4 text-white">${playerName} - Overall ${recordType} Record</h3>`;
+             statsHtml += '<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">';
+             for (const [key, value] of Object.entries(stats)) {
+                let displayValue = (typeof value === 'number' && !Number.isInteger(value)) ? value.toFixed(2) : value;
+                if (value === Infinity) displayValue = 'N/A';
+                 statsHtml += `<div class="bg-gray-700 p-4 rounded-lg text-center"><p class="text-sm text-gray-400 capitalize">${key.replace(/_/g, ' ')}</p><p class="text-xl font-bold">${displayValue}</p></div>`;
+             }
+             statsHtml += '</div>';
+             statsHtml += `<h4 class="text-xl font-semibold mt-8 mb-4 text-white">Performance Against Teams</h4>`;
+             statsHtml += `<div class="overflow-x-auto"><table class="min-w-full bg-gray-900 rounded-lg"><thead><tr class="bg-gray-700">`;
+             const againstDataValues = Object.values(againstStats);
+             const firstValidStats = againstDataValues.find(s => Object.keys(s).length > 0) || {};
+             const headers = Object.keys(firstValidStats);
+             statsHtml += `<th class="p-3 text-left text-sm font-semibold">Team</th>`;
+             headers.forEach(h => { statsHtml += `<th class="p-3 text-left text-sm font-semibold capitalize">${h.replace(/_/g, ' ')}</th>`; });
+             statsHtml += `</tr></thead><tbody>`;
+             for(const [team, teamStats] of Object.entries(againstStats)) {
+                if(Object.keys(teamStats).length > 0) {
+                    statsHtml += `<tr class="border-b border-gray-700 hover:bg-gray-800"><td class="p-3 font-medium">${team}</td>`;
+                    headers.forEach(header => {
+                        let value = teamStats[header];
+                        let displayValue = (typeof value === 'number' && !Number.isInteger(value)) ? value.toFixed(2) : value;
+                        if (value === Infinity) displayValue = 'N/A';
+                        statsHtml += `<td class="p-3">${displayValue}</td>`;
+                    });
+                    statsHtml += `</tr>`;
+                }
+             }
+             statsHtml += `</tbody></table></div>`;
+             resultsContainer.innerHTML = statsHtml;
+        };
+
+        getTeamVTeamBtn.addEventListener('click', () => {
+            const team1 = team1Select.value;
+            const team2 = team2Select.value;
+            if (!team1 || !team2) { alert('Please select both teams.'); return; }
+            if (team1 === team2) { alert('Please select two different teams.'); return; }
+            fetchData(`/api/teamvteam?team1=${encodeURIComponent(team1)}&team2=${encodeURIComponent(team2)}`, renderTeamVTeam, team1, team2);
+        });
+
+        // ✅ FIXED: This now calls fetchData correctly
+        getBatsmanBtn.addEventListener('click', () => {
+            const player = batsmanSelect.value;
+            if (!player) { alert('Please select a batsman.'); return; }
+            fetchData(`/api/batting-record?batsman=${encodeURIComponent(player)}`, renderPlayerStats, 'Batting');
+        });
+
+        // ✅ FIXED: This now calls fetchData correctly
+        getBowlerBtn.addEventListener('click', () => {
+            const player = bowlerSelect.value;
+            if (!player) { alert('Please select a bowler.'); return; }
+            fetchData(`/api/bowling-record?bowler=${encodeURIComponent(player)}`, renderPlayerStats, 'Bowling');
+        });
+    </script>
+</body>
+</html>
