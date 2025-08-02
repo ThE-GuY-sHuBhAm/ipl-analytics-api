@@ -9,7 +9,7 @@ A full-stack web application that provides detailed performance analytics for th
 You can access the live, deployed application here:
 **[https://the-ipl-dugout.onrender.com](https://the-ipl-dugout.onrender.com)**
 
-![Screenshot of the IPL Dugout application interface](https://i.imgur.com/8a6tJ2g.png)
+![Screenshot of the IPL Dugout application interface](images/interface.png)
 
 ---
 
