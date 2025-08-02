@@ -1,11 +1,9 @@
 import pandas as pd
 import numpy as np
 import json
-import math  # Import the math module
+import math
 
 
-# --- Custom JSON Encoder for NumPy types ---
-# ✅ FIXED: This encoder now handles all edge cases for infinity and NaN.
 class NpEncoder(json.JSONEncoder):
     """
     Custom JSON encoder to handle NumPy and standard Python types that are
@@ -35,7 +33,8 @@ class NpEncoder(json.JSONEncoder):
         return super(NpEncoder, self).default(obj)
 
 
-# --- Data Loading and Preprocessing ---
+#Data Loading and Preprocessing
+
 matches_df = pd.read_csv('ipl_matches.csv')
 balls_df = pd.read_csv('ipl_ball.csv')
 ball_with_match_df = pd.merge(balls_df, matches_df, on='ID', how='inner')
@@ -46,7 +45,7 @@ ball_with_match_df['BowlingTeam'] = ball_with_match_df.apply(
 ALL_TEAMS = set(matches_df['Team1'].unique()) | set(matches_df['Team2'].unique())
 
 
-# --- Team Level Functions ---
+#Team Level Functions
 
 def get_team_record(team, matches_data):
     team_matches = matches_data[(matches_data['Team1'] == team) | (matches_data['Team2'] == team)]
@@ -59,7 +58,6 @@ def get_team_record(team, matches_data):
             'titles_won': titles_won}
 
 
-# ✅ FIXED: Explicitly cast all return values to standard Python int.
 def teamVteamAPI(team1, team2):
     if team1 not in ALL_TEAMS or team2 not in ALL_TEAMS:
         return {'message': 'Invalid team name provided.'}
@@ -89,7 +87,7 @@ def teamAPI(team):
     return json.dumps(data, cls=NpEncoder)
 
 
-# --- Batsman Level Functions (No changes needed here) ---
+#Batsman Level Functions
 
 def batsmanRecord(batsman, df):
     batsman_df = df[df['batter'] == batsman]
@@ -130,7 +128,7 @@ def batsmanAPI(batsman):
     return json.dumps(data, cls=NpEncoder, indent=4)
 
 
-# --- Bowler Level Functions (No changes needed here) ---
+#Bowler Level Functions
 
 def bowlerRecord(bowler, df):
     bowler_df = df[df['bowler'] == bowler].copy()
